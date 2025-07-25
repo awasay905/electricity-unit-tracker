@@ -7,7 +7,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/
 import { Label, RadialBar, RadialBarChart } from 'recharts';
 import type { Reading } from '@/lib/types';
 import { ShieldCheck, ShieldAlert, ShieldX, Loader2 } from 'lucide-react';
-import { run } from '@genkit-ai/next/client';
+import { runFlow } from '@genkit-ai/next/client';
 import { energyConsumptionSafetyGauge } from '@/ai/flows/energy-consumption-safety-gauge';
 
 interface SafetyGaugeProps {
@@ -46,7 +46,7 @@ export function SafetyGauge({ monthlyGoal, currentUsage, readings, billingStartD
             const daysElapsed = Math.ceil((new Date().getTime() - billingStartDate.getTime()) / (1000 * 3600 * 24));
             const historicalData = JSON.stringify(readings.map(r => ({ date: r.date, usage: r.value })));
             
-            const result = await run(energyConsumptionSafetyGauge, {
+            const result = await runFlow(energyConsumptionSafetyGauge, {
                 monthlyGoal,
                 currentUsage,
                 daysElapsed,
