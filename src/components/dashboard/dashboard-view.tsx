@@ -47,7 +47,7 @@ export function DashboardView({ user, house, readings, members, onAddReading, on
         <p className="text-muted-foreground">Welcome back, {user.name}!</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard icon={Zap} title="Units Consumed" value={`${unitsConsumed.toFixed(2)} kWh`} />
         <StatCard icon={Target} title="Units Left" value={`${unitsLeft.toFixed(2)} kWh`} />
         <StatCard icon={Calendar} title="Last Reading" value={new Date(latestReading.date).toLocaleDateString('en-US')} />
