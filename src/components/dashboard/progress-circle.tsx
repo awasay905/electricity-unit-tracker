@@ -40,6 +40,7 @@ export function ProgressCircle({ percentage, title }: ProgressCircleProps) {
             outerRadius="100%"
             barSize={20}
             cy="50%"
+            domain={[0, 100]}
           >
             <RadialBar
               dataKey="value"
