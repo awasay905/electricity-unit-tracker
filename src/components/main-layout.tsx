@@ -109,7 +109,7 @@ export function MainLayout() {
     return (
       <Card className="w-full max-w-md mx-auto mt-10">
         <CardContent className="p-6 text-center">
-          <p>Loading your VoltVision dashboard...</p>
+          <p>Loading your Voltracker dashboard...</p>
         </CardContent>
       </Card>
     );
