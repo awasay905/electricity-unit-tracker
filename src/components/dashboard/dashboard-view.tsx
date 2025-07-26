@@ -1,8 +1,9 @@
+
 'use client';
 
 import type { House, Reading, User } from '@/lib/types';
 import { StatCard } from './stat-card';
-import { ProgressCircle } from './progress-circle';
+import { GoalProgress } from './goal-progress';
 import { SafetyGauge } from './safety-gauge';
 import { ReadingForm } from './reading-form';
 import { GoalForm } from './goal-form';
@@ -56,18 +57,18 @@ export function DashboardView({ user, house, readings, members, onAddReading, on
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <div className="lg:col-span-1">
-          <ProgressCircle title="Goal Reached" percentage={goalReachedPercent} />
+          <GoalProgress title="Goal Reached" percentage={goalReachedPercent} />
         </div>
         <div className="lg:col-span-2">
-           <SafetyGauge monthlyGoal={house.monthlyGoal} currentUsage={unitsConsumed} readings={readings} billingStartDate={new Date(billingCycleStartReading.date)} />
+           <SafetyGauge monthlyGoal={house.monthlyGoal} currentUsage={unitsConsumed} billingStartDate={new Date(billingCycleStartReading.date)} />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div className="lg:col-span-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:grid-flow-row-dense">
+        <div className="lg:col-span-2 lg:col-start-1">
             <UsageChart readings={readings} />
         </div>
-        <div className="space-y-4">
+        <div className="space-y-4 lg:col-span-1 lg:col-start-3">
             <ReadingForm onAddReading={onAddReading} lastReadingValue={latestReading.value} />
             {isOwner && <GoalForm house={house} onUpdateHouse={onUpdateHouse} />}
         </div>

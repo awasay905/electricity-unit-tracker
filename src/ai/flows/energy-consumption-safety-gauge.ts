@@ -2,82 +2,77 @@
 'use server';
 
 /**
- * @fileOverview An AI agent that provides insights into energy consumption safety based on current usage compared to the monthly goal and historical data.
+ * @fileOverview An AI agent that provides insights into energy consumption pace based on current usage compared to the monthly goal.
  *
- * - getEnergyConsumptionSafety - A function that returns a safety assessment of energy consumption.
- * - EnergyConsumptionSafetyInput - The input type for the getEnergyConsumptionSafety function.
- * - EnergyConsumptionSafetyOutput - The return type for the getEnergyConsumptionSafety function.
+ * - getConsumptionPace - A function that returns a pace assessment of energy consumption.
+ * - ConsumptionPaceInput - The input type for the getConsumptionPace function.
+ * - ConsumptionPaceOutput - The return type for the getConsumptionPace function.
  */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-const EnergyConsumptionSafetyInputSchema = z.object({
+const ConsumptionPaceInputSchema = z.object({
   monthlyGoal: z
     .number()
     .describe('The monthly electricity consumption goal in units.'),
   currentUsage: z
     .number()
-    .describe('The current electricity consumption in units.'),
+    .describe('The current electricity consumption in units for this billing cycle.'),
   daysElapsed: z
     .number()
-    .describe('The number of days elapsed in the current month.'),
-  historicalUsageData: z
-    .string()
-    .describe(
-      `Historical electricity usage data as a JSON string, including date and usage. For example: [{"date": "2023-01-15T10:00:00Z", "usage": 50}, {"date": "2023-01-16T10:00:00Z", "usage": 55}]`
-    ),
+    .describe('The number of days that have passed in the current billing cycle.'),
 });
-export type EnergyConsumptionSafetyInput = z.infer<typeof EnergyConsumptionSafetyInputSchema>;
+export type ConsumptionPaceInput = z.infer<typeof ConsumptionPaceInputSchema>;
 
 
-const EnergyConsumptionSafetyOutputSchema = z.object({
-    safetyLevel: z.string().describe("The safety level of the energy consumption. Can be 'Safe', 'Warning', or 'Danger'."),
-    recommendation: z.string().describe("A recommendation for the user based on their energy consumption."),
-    projectedUsage: z.number().describe("The projected energy consumption for the end of the month."),
+const ConsumptionPaceOutputSchema = z.object({
+    paceStatus: z.string().describe("The pace of the energy consumption. Can be 'On Track', 'Slightly High', or 'High'."),
+    analysis: z.string().describe("A brief analysis of the user's consumption pace."),
+    projectedUsage: z.number().describe("The projected energy consumption for the end of the month based on the current pace."),
 });
-export type EnergyConsumptionSafetyOutput = z.infer<typeof EnergyConsumptionSafetyOutputSchema>;
+export type ConsumptionPaceOutput = z.infer<typeof ConsumptionPaceOutputSchema>;
 
-const safetyPrompt = ai.definePrompt({
-    name: "energyConsumptionSafetyPrompt",
-    input: { schema: EnergyConsumptionSafetyInputSchema },
-    output: { schema: EnergyConsumptionSafetyOutputSchema },
-    prompt: `You are an energy consumption analyst. Your task is to assess the electricity usage of a household and provide a safety assessment.
-        
+
+export async function getConsumptionPace(input: ConsumptionPaceInput): Promise<ConsumptionPaceOutput> {
+  return consumptionPaceFlow(input);
+}
+
+
+const pacePrompt = ai.definePrompt({
+    name: "consumptionPacePrompt",
+    input: { schema: ConsumptionPaceInputSchema },
+    output: { schema: ConsumptionPaceOutputSchema },
+    prompt: `You are an energy consumption analyst. Your task is to assess the electricity usage pace of a household. Assume a 30-day billing cycle.
+
 Current situation:
 - Monthly Goal: {{{monthlyGoal}}} units
-- Current Usage this month: {{{currentUsage}}} units
-- Days elapsed in the month: {{{daysElapsed}}}
-- Total days in month (assume 30 for simplicity)
-
-Historical Data (JSON format):
-{{{historicalUsageData}}}
+- Current Usage this cycle: {{{currentUsage}}} units
+- Days elapsed in the cycle: {{{daysElapsed}}}
 
 Analyze the data and provide the following:
-1.  **Safety Level**: Categorize the current consumption trend into one of three levels: 'Safe', 'Warning', or 'Danger'.
-    - 'Safe': On track to meet or be well under the monthly goal.
-    - 'Warning': At risk of exceeding the monthly goal if current consumption rates continue.
-    - 'Danger': Very likely to exceed the monthly goal. Immediate action is needed.
-2.  **Recommendation**: Provide a concise, actionable recommendation for the user. (e.g., "You're on track! Keep up the good work.", "Your usage is a bit high. Try to reduce appliance use during peak hours.", "Urgent: Your consumption is on a path to significantly exceed your goal. Unplug unused electronics and review your high-usage appliances.")
-3.  **Projected Usage**: Calculate the projected total consumption for the end of the month based on the current average daily usage.
-
-The current date is ${new Date().toLocaleDateString()}.
+1.  **Pace Status**: Categorize the current consumption pace into one of three levels: 'On Track', 'Slightly High', or 'High'.
+    - 'On Track': Projected usage is less than or equal to 100% of the monthly goal.
+    - 'Slightly High': Projected usage is between 101% and 120% of the monthly goal.
+    - 'High': Projected usage is over 120% of the monthly goal.
+2.  **Analysis**: Provide a very brief, one-sentence analysis. For example: "You're using energy efficiently and are on track to meet your goal." or "Your usage is a bit high, but you can still get back on track." or "Your consumption is high and you're projected to exceed your goal."
+3.  **Projected Usage**: Calculate the projected total consumption for the end of the 30-day cycle based on the current average daily usage.
 `
 });
 
 
-export const energyConsumptionSafetyGauge = ai.defineFlow(
+const consumptionPaceFlow = ai.defineFlow(
   {
-    name: 'energyConsumptionSafetyGauge',
-    inputSchema: EnergyConsumptionSafetyInputSchema,
-    outputSchema: EnergyConsumptionSafetyOutputSchema,
+    name: 'consumptionPaceFlow',
+    inputSchema: ConsumptionPaceInputSchema,
+    outputSchema: ConsumptionPaceOutputSchema,
   },
   async (input) => {
-    const llmResponse = await safetyPrompt(input);
+    const llmResponse = await pacePrompt(input);
     
     return llmResponse.output ?? {
-        safetyLevel: 'Unknown',
-        recommendation: 'Could not generate a response.',
+        paceStatus: 'Unknown',
+        analysis: 'Could not generate a response.',
         projectedUsage: 0
     };
   }

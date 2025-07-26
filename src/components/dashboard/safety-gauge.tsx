@@ -1,69 +1,66 @@
+
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+import { ChartContainer } from '@/components/ui/chart';
 import { Label, RadialBar, RadialBarChart } from 'recharts';
 import type { Reading } from '@/lib/types';
-import { ShieldCheck, ShieldAlert, ShieldX, Loader2 } from 'lucide-react';
+import { Bot, Zap, TrendingUp, Loader2 } from 'lucide-react';
 import { runFlow } from '@genkit-ai/next/client';
-import { energyConsumptionSafetyGauge } from '@/ai/flows/energy-consumption-safety-gauge';
+import { getConsumptionPace } from '@/ai/flows/energy-consumption-safety-gauge';
 
-interface SafetyGaugeProps {
+interface PacingAnalysisProps {
     monthlyGoal: number;
     currentUsage: number;
-    readings: Reading[];
     billingStartDate: Date;
 }
 
-type SafetyLevel = 'Safe' | 'Warning' | 'Danger' | 'Unknown';
-interface SafetyData {
-    level: SafetyLevel;
-    recommendation: string;
+type PaceStatus = 'On Track' | 'Slightly High' | 'High' | 'Unknown';
+interface PaceData {
+    status: PaceStatus;
+    analysis: string;
     projectedUsage: number;
 }
 
-const safetyConfig: Record<SafetyLevel, {
+const paceConfig: Record<PaceStatus, {
     color: string;
     icon: React.ElementType;
-    label: string;
 }> = {
-    Safe: { color: 'hsl(142.1, 76.2%, 36.3%)', icon: ShieldCheck, label: 'Safe' },
-    Warning: { color: 'hsl(var(--accent))', icon: ShieldAlert, label: 'Warning' },
-    Danger: { color: 'hsl(var(--destructive))', icon: ShieldX, label: 'Danger' },
-    Unknown: { color: 'hsl(var(--muted-foreground))', icon: ShieldAlert, label: 'N/A' },
+    'On Track': { color: 'hsl(142.1, 76.2%, 36.3%)', icon: Zap },
+    'Slightly High': { color: 'hsl(var(--accent))', icon: TrendingUp },
+    'High': { color: 'hsl(var(--destructive))', icon: TrendingUp },
+    'Unknown': { color: 'hsl(var(--muted-foreground))', icon: Bot },
 };
 
-export function SafetyGauge({ monthlyGoal, currentUsage, readings, billingStartDate }: SafetyGaugeProps) {
+export function SafetyGauge({ monthlyGoal, currentUsage, billingStartDate }: PacingAnalysisProps) {
     const [isLoading, setIsLoading] = useState(false);
-    const [safetyData, setSafetyData] = useState<SafetyData | null>(null);
+    const [paceData, setPaceData] = useState<PaceData | null>(null);
 
     const handleAnalysis = async () => {
         setIsLoading(true);
-        setSafetyData(null);
+        setPaceData(null);
         try {
-            const daysElapsed = Math.ceil((new Date().getTime() - billingStartDate.getTime()) / (1000 * 3600 * 24));
-            const historicalData = JSON.stringify(readings.map(r => ({ date: r.date, usage: r.value })));
+            const daysElapsed = Math.ceil((new Date().getTime() - billingStartDate.getTime()) / (1000 * 3600 * 24)) || 1;
             
-            const result = await runFlow(energyConsumptionSafetyGauge, {
+            const result = await runFlow(getConsumptionPace, {
                 monthlyGoal,
                 currentUsage,
                 daysElapsed,
-                historicalUsageData: historicalData,
             });
 
-            setSafetyData({
-                level: result.safetyLevel as SafetyLevel,
-                recommendation: result.recommendation,
+            setPaceData({
+                status: result.paceStatus as PaceStatus,
+                analysis: result.analysis,
                 projectedUsage: result.projectedUsage,
             });
 
         } catch (error) {
             console.error("AI analysis failed:", error);
-            setSafetyData({
-                level: 'Unknown',
-                recommendation: 'Could not perform analysis. Please try again.',
+            setPaceData({
+                status: 'Unknown',
+                analysis: 'Could not perform analysis. Please try again.',
                 projectedUsage: 0,
             });
         } finally {
@@ -71,18 +68,19 @@ export function SafetyGauge({ monthlyGoal, currentUsage, readings, billingStartD
         }
     };
     
-    const level = safetyData?.level || 'Unknown';
-    const Icon = safetyConfig[level].icon;
-    const chartData = [{ name: 'Safety', value: safetyData ? 100 : 0, fill: safetyConfig[level].color }];
+    const status = paceData?.status || 'Unknown';
+    const Icon = paceConfig[status].icon;
+    const projectedPercentage = monthlyGoal > 0 ? (paceData?.projectedUsage ?? 0) / monthlyGoal * 100 : 0;
+    const chartData = [{ name: 'Pace', value: projectedPercentage, fill: paceConfig[status].color }];
 
     return (
         <Card className="h-full flex flex-col">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2 font-headline">
-                    <Icon className="h-6 w-6" />
-                    AI Safety Gauge
+                    <Bot className="h-6 w-6" />
+                    AI Pacing Analysis
                 </CardTitle>
-                <CardDescription>Get an AI-powered analysis of your consumption habits.</CardDescription>
+                <CardDescription>Get an AI-powered analysis of your consumption pace.</CardDescription>
             </CardHeader>
             <CardContent className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
                 <div className="flex flex-col items-center justify-center text-center">
@@ -91,36 +89,46 @@ export function SafetyGauge({ monthlyGoal, currentUsage, readings, billingStartD
                            <Loader2 className="h-10 w-10 animate-spin text-primary" />
                            <p className="text-muted-foreground">Analyzing...</p>
                         </div>
-                    ) : safetyData ? (
+                    ) : paceData ? (
                         <div className="space-y-2">
-                             <p className="font-bold text-lg" style={{ color: safetyConfig[level].color }}>
-                                {safetyData.level}
+                             <p className="font-bold text-lg" style={{ color: paceConfig[status].color }}>
+                                {paceData.status}
                             </p>
-                            <p className="text-sm">{safetyData.recommendation}</p>
+                            <p className="text-sm">{paceData.analysis}</p>
                             <p className="text-sm text-muted-foreground">
-                                Projected Usage: {safetyData.projectedUsage.toFixed(2)} / {monthlyGoal} kWh
+                                Projected: {paceData.projectedUsage.toFixed(0)} / {monthlyGoal} kWh
                             </p>
                         </div>
                     ) : (
-                         <p className="text-muted-foreground">Click the button to analyze your energy usage.</p>
+                         <p className="text-muted-foreground">Click the button to analyze your energy pace.</p>
                     )}
                 </div>
                 <div className="flex items-center justify-center">
                      <ChartContainer config={{}} className="mx-auto aspect-square w-full max-w-[200px]">
-                        <RadialBarChart data={chartData} innerRadius="80%" outerRadius="100%" startAngle={90} endAngle={450}>
-                            <RadialBar dataKey="value" background={{ fill: 'hsl(var(--muted))' }} cornerRadius={10} />
+                        <RadialBarChart 
+                            data={chartData} 
+                            innerRadius="80%" 
+                            outerRadius="100%" 
+                            startAngle={90} 
+                            endAngle={450}
+                            barSize={20}
+                        >
+                             <RadialBar 
+                                dataKey="value" 
+                                cornerRadius={10} 
+                                background
+                             />
                              <Label
                                 content={({ viewBox }) => {
                                     if (viewBox && 'cx' in viewBox && 'cy' in viewBox) {
                                         return (
                                             <g>
-                                                <Icon
-                                                    x={viewBox.cx - 20}
-                                                    y={viewBox.cy - 20}
-                                                    height={40}
-                                                    width={40}
-                                                    color={safetyConfig[level].color}
-                                                />
+                                                <text x={viewBox.cx} y={viewBox.cy - 5} textAnchor="middle" dominantBaseline="middle" className="fill-foreground text-3xl font-bold">
+                                                    {`${Math.round(projectedPercentage)}%`}
+                                                </text>
+                                                <text x={viewBox.cx} y={viewBox.cy + 20} textAnchor="middle" dominantBaseline="middle" className="fill-muted-foreground text-sm">
+                                                    Projected
+                                                </text>
                                             </g>
                                         );
                                     }

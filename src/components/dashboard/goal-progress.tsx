@@ -4,12 +4,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress';
 import { Target } from 'lucide-react';
 
-interface ProgressCircleProps {
+interface GoalProgressProps {
   percentage: number;
   title: string;
 }
 
-export function ProgressCircle({ percentage, title }: ProgressCircleProps) {
+export function GoalProgress({ percentage, title }: GoalProgressProps) {
   const fillPercentage = Math.min(Math.max(percentage, 0), 100);
   
   return (
