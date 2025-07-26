@@ -12,7 +12,10 @@ interface ProgressCircleProps {
 
 export function ProgressCircle({ percentage, title }: ProgressCircleProps) {
   const fillPercentage = Math.min(Math.max(percentage, 0), 100);
-  const chartData = [{ name: 'Goal', value: fillPercentage, fill: "var(--color-Goal)" }];
+  const chartData = [
+    { name: 'background', value: 100, fill: 'hsl(var(--muted))' },
+    { name: 'value', value: fillPercentage, fill: 'hsl(var(--primary))' },
+  ];
   
   return (
     <Card className="flex flex-col h-full">
@@ -24,12 +27,7 @@ export function ProgressCircle({ percentage, title }: ProgressCircleProps) {
       </CardHeader>
       <CardContent className="flex-1 flex items-center justify-center">
         <ChartContainer
-          config={{
-            Goal: {
-              label: 'Goal',
-              color: 'hsl(var(--primary))',
-            },
-          }}
+          config={{}}
           className="mx-auto aspect-square w-full max-w-[250px]"
         >
           <RadialBarChart
@@ -40,37 +38,30 @@ export function ProgressCircle({ percentage, title }: ProgressCircleProps) {
             outerRadius="100%"
             barSize={10}
             cy="50%"
-            domain={[0, 100]}
           >
-            <RadialBar
-              dataKey="value"
-              background
-              cornerRadius={10}
-              className="fill-[var(--color-Goal)]"
-            >
-                <Label
-                    content={({ viewBox }) => {
-                        if (viewBox && 'cx' in viewBox && 'cy' in viewBox) {
-                            return (
-                                <text x={viewBox.cx} y={viewBox.cy} textAnchor="middle" dominantBaseline="middle">
-                                    <tspan
-                                        x={viewBox.cx}
-                                        y={viewBox.cy}
-                                        className="text-4xl font-bold font-headline"
-                                        fill="hsl(var(--foreground))"
-                                    >
-                                        {fillPercentage.toFixed(0)}%
-                                    </tspan>
-                                </text>
-                            )
-                        }
-                        return null;
-                    }}
-                />
-            </RadialBar>
+            <RadialBar dataKey="value" background cornerRadius={10} stackId="a" />
             <ChartTooltip
                 cursor={false}
-                content={<ChartTooltipContent hideLabel />}
+                content={<ChartTooltipContent hideLabel nameKey="name" formatter={(value, name) => (name === 'value' ? `${Number(value).toFixed(0)}%` : null)} />}
+            />
+            <Label
+                content={({ viewBox }) => {
+                    if (viewBox && 'cx' in viewBox && 'cy' in viewBox) {
+                        return (
+                            <text x={viewBox.cx} y={viewBox.cy} textAnchor="middle" dominantBaseline="middle">
+                                <tspan
+                                    x={viewBox.cx}
+                                    y={viewBox.cy}
+                                    className="text-4xl font-bold font-headline"
+                                    fill="hsl(var(--foreground))"
+                                >
+                                    {fillPercentage.toFixed(0)}%
+                                </tspan>
+                            </text>
+                        )
+                    }
+                    return null;
+                }}
             />
           </RadialBarChart>
         </ChartContainer>
