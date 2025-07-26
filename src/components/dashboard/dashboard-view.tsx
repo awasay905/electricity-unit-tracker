@@ -54,7 +54,8 @@ export function DashboardView({ user, house, readings, members, onAddReading, on
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard icon={Zap} title="Units Consumed" value={`${unitsConsumed.toFixed(2)} kWh`} />
         <StatCard icon={Target} title="Units Left" value={`${unitsLeft.toFixed(2)} kWh`} />
-        <StatCard icon={Calendar} title="Last Reading" value={new Date(latestReading.date).toLocaleDateString('en-US')} />
+        <StatCard icon={Calendar} title="Last Reading" 
+          value={`${Math.floor((new Date().getTime() - new Date(latestReading.date).getTime()) / (1000 * 60 * 60 * 24))} days ago.`} />
         <StatCard icon={Users} title="Members" value={members.length.toString()} />
       </div>
 
