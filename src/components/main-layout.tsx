@@ -30,7 +30,7 @@ export function MainLayout() {
             setHouse(houseData);
             if (houseData) {
               const readingsData = await firestore.getReadings(houseData.id);
-              setReadings(readingsData);
+              setReadings(readingsData.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
               const membersData = await firestore.getHouseMembers(houseData.id);
               setMembers(membersData);
               if (user.uid === houseData.ownerId) {
@@ -49,8 +49,24 @@ export function MainLayout() {
     if (!house) return;
     const addedReading = await firestore.addReading(house.id, newReading);
     if (addedReading) {
-      setReadings((prev) => [...prev, addedReading]);
+      setReadings((prev) => [...prev, addedReading].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     }
+  };
+  
+  const handleUpdateReading = async (readingId: string, updates: Partial<Pick<Reading, 'value' | 'date'>>) => {
+    if (!house) return;
+    await firestore.updateReading(house.id, readingId, updates);
+    setReadings(prev => prev.map(r => r.id === readingId ? { ...r, ...updates } : r).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+  };
+
+  const handleDeleteReading = async (readingId: string) => {
+    if (!house) return;
+    // Optimistically remove billing cycle start readings as they cannot be deleted.
+    const readingToDelete = readings.find(r => r.id === readingId);
+    if (readingToDelete?.isBillingCycleStart) return;
+
+    await firestore.deleteReading(house.id, readingId);
+    setReadings(prev => prev.filter(r => r.id !== readingId));
   };
 
   const handleUpdateHouse = async (updates: Partial<House>) => {
@@ -66,7 +82,7 @@ export function MainLayout() {
         };
         const addedReading = await firestore.addReading(house.id, newBillingReading);
         if (addedReading) {
-            setReadings((prev) => [...prev, addedReading]);
+            setReadings((prev) => [...prev, addedReading].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
         }
     }
   };
@@ -165,10 +181,13 @@ export function MainLayout() {
                 house={house}
                 members={members}
                 joinRequests={joinRequests}
+                readings={readings}
                 onUpdateRequestStatus={handleUpdateRequestStatus}
                 onRemoveMember={handleRemoveMember}
                 onUpdateHouseName={(name) => handleUpdateHouse({ name })}
                 onUpdateUserName={handleUpdateUserName}
+                onUpdateReading={handleUpdateReading}
+                onDeleteReading={handleDeleteReading}
               />
              </div>
           </ScrollArea>

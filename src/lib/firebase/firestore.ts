@@ -213,6 +213,31 @@ export const getReadings = async (houseId: string): Promise<Reading[]> => {
   }
 };
 
+export const updateReading = async (
+  houseId: string,
+  readingId: string,
+  data: Partial<Pick<Reading, 'value' | 'date'>>
+): Promise<void> => {
+  try {
+    const readingRef = doc(db, 'houses', houseId, 'readings', readingId);
+    await updateDoc(readingRef, data);
+  } catch (error) {
+    console.error('updateReading: Error', error);
+    throw error;
+  }
+};
+
+export const deleteReading = async (houseId: string, readingId: string): Promise<void> => {
+  try {
+    const readingRef = doc(db, 'houses', houseId, 'readings', readingId);
+    await deleteDoc(readingRef);
+  } catch (error) {
+    console.error('deleteReading: Error', error);
+    throw error;
+  }
+};
+
+
 // --- Join Request Functions ---
 
 export const createJoinRequest = async (houseId: string, requesterId: string, requesterName: string): Promise<void> => {

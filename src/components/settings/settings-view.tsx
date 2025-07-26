@@ -6,20 +6,27 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { House, User as UserIcon, Bell, Copy, Check, X, Trash2, UserPlus } from 'lucide-react';
-import type { House as HouseType, User, JoinRequest } from '@/lib/types';
+import { House, User as UserIcon, Bell, Copy, Check, X, Trash2, UserPlus, Pencil, SlidersHorizontal, AlertTriangle } from 'lucide-react';
+import type { House as HouseType, User, JoinRequest, Reading } from '@/lib/types';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { EditReadingDialog } from './edit-reading-dialog';
+import { ScrollArea } from '../ui/scroll-area';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui/alert-dialog';
+
 
 interface SettingsViewProps {
   user: User;
   house: HouseType;
   members: User[];
   joinRequests: JoinRequest[];
+  readings: Reading[];
   onUpdateRequestStatus: (requestId: string, status: 'approved' | 'rejected') => void;
   onRemoveMember: (uid: string) => void;
   onUpdateHouseName: (name: string) => void;
   onUpdateUserName: (name: string) => void;
+  onUpdateReading: (readingId: string, updates: Partial<Pick<Reading, 'value' | 'date'>>) => void;
+  onDeleteReading: (readingId: string) => void;
 }
 
 export function SettingsView({
@@ -27,15 +34,20 @@ export function SettingsView({
   house,
   members,
   joinRequests,
+  readings,
   onUpdateRequestStatus,
   onRemoveMember,
   onUpdateHouseName,
-  onUpdateUserName
+  onUpdateUserName,
+  onUpdateReading,
+  onDeleteReading,
 }: SettingsViewProps) {
   const isOwner = user.uid === house.ownerId;
   const [houseName, setHouseName] = useState(house.name);
   const [userName, setUserName] = useState(user.name);
   const [copied, setCopied] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedReading, setSelectedReading] = useState<Reading | null>(null);
   const { toast } = useToast();
 
   const handleCopyCode = () => {
@@ -53,6 +65,35 @@ export function SettingsView({
   const handleUserNameSave = () => {
       onUpdateUserName(userName);
       toast({ title: "Your name has been updated."});
+  }
+
+  const handleEditClick = (reading: Reading) => {
+    if (reading.isBillingCycleStart) {
+        toast({
+            variant: 'destructive',
+            title: 'Action Not Allowed',
+            description: 'Billing cycle start readings cannot be edited here. Update it via the "Set Goals & Billing" form.'
+        });
+        return;
+    }
+    setSelectedReading(reading);
+    setIsEditDialogOpen(true);
+  };
+  
+  const handleDeleteClick = (reading: Reading) => {
+    if (reading.isBillingCycleStart) {
+        toast({
+            variant: 'destructive',
+            title: 'Action Not Allowed',
+            description: 'Billing cycle start readings cannot be deleted.'
+        });
+        return;
+    }
+    onDeleteReading(reading.id);
+     toast({
+        title: 'Reading Deleted',
+        description: 'The reading has been successfully deleted.',
+      });
   }
 
   return (
@@ -148,6 +189,66 @@ export function SettingsView({
           )}
         </CardContent>
       </Card>
+      
+      {/* Manage Readings */}
+      {isOwner && (
+          <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2 font-headline"><SlidersHorizontal /> Manage Readings</CardTitle>
+                <CardDescription>As the owner, you can edit or delete past readings. Be careful, as this will affect historical data.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <ScrollArea className="h-72 w-full pr-4">
+                    <div className="space-y-2">
+                        {readings.map(reading => (
+                            <div key={reading.id} className="flex items-center justify-between p-2 rounded-md bg-muted/50">
+                                <div>
+                                    <p className="font-semibold">{reading.value.toFixed(2)} kWh</p>
+                                    <p className="text-sm text-muted-foreground">
+                                        {new Date(reading.date).toLocaleDateString()}
+                                        {reading.isBillingCycleStart && <span className="text-xs text-accent-foreground bg-accent px-2 py-0.5 rounded-full ml-2">Billing Start</span>}
+                                    </p>
+                                </div>
+                                <div className="flex gap-2">
+                                    <Button variant="outline" size="icon" onClick={() => handleEditClick(reading)} disabled={!!reading.isBillingCycleStart}>
+                                        <Pencil className="h-4 w-4" />
+                                    </Button>
+                                    <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                          <Button variant="destructive" size="icon" disabled={!!reading.isBillingCycleStart}>
+                                              <Trash2 className="h-4 w-4" />
+                                          </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                    This action cannot be undone. This will permanently delete the reading of <span className="font-bold">{reading.value.toFixed(2)} kWh</span> from <span className="font-bold">{new Date(reading.date).toLocaleDateString()}</span>.
+                                                </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                <AlertDialogAction onClick={() => handleDeleteClick(reading)}>Delete</AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </ScrollArea>
+            </CardContent>
+          </Card>
+      )}
+
+      {selectedReading && (
+        <EditReadingDialog
+          isOpen={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen}
+          reading={selectedReading}
+          onSave={onUpdateReading}
+        />
+      )}
     </div>
   );
 }
