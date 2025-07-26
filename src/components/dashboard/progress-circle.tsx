@@ -39,7 +39,7 @@ export function ProgressCircle({ percentage, title }: ProgressCircleProps) {
             barSize={10}
             cy="50%"
           >
-            <RadialBar dataKey="value" background cornerRadius={10} stackId="a" />
+            <RadialBar dataKey="value" cornerRadius={10} stackId="a" />
             <ChartTooltip
                 cursor={false}
                 content={<ChartTooltipContent hideLabel nameKey="name" formatter={(value, name) => (name === 'value' ? `${Number(value).toFixed(0)}%` : null)} />}
