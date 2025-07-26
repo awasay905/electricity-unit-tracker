@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, createContext, useContext, type ReactNode } from 'react';
-import { onAuthStateChanged, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword, type User as FirebaseAuthUser } from 'firebase/auth';
+import { onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup, type User as FirebaseAuthUser } from 'firebase/auth';
 import { auth } from '@/lib/firebase/firebase';
 import * as firestore from '@/lib/firebase/firestore';
 import type { User } from '@/lib/types';
@@ -11,8 +11,7 @@ interface AuthContextType {
   user: User | null;
   firebaseUser: FirebaseAuthUser | null;
   loading: boolean;
-  login: (email: string, pass: string) => Promise<any>;
-  signup: (email: string, pass: string, name: string) => Promise<any>;
+  loginWithGoogle: () => Promise<any>;
   logout: () => Promise<any>;
 }
 
@@ -28,7 +27,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setFirebaseUser(user);
       if (user) {
-        const appUser = await firestore.getUser(user.uid);
+        let appUser = await firestore.getUser(user.uid);
+        if (!appUser) {
+          // User signed in for the first time
+          await firestore.createUser(user.uid, user.displayName || 'New User', user.email || '');
+          appUser = await firestore.getUser(user.uid);
+        }
         setUser(appUser);
       } else {
         setUser(null);
@@ -39,14 +43,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, []);
 
-  const login = (email: string, pass: string) => {
-      return signInWithEmailAndPassword(auth, email, pass);
-  }
-
-  const signup = async (email: string, pass: string, name: string) => {
-      const cred = await createUserWithEmailAndPassword(auth, email, pass);
-      await firestore.createUser(cred.user.uid, name, email);
-      return cred;
+  const loginWithGoogle = async () => {
+    const provider = new GoogleAuthProvider();
+    return signInWithPopup(auth, provider);
   }
 
   const logout = () => {
@@ -58,8 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user,
     firebaseUser,
     loading,
-    login,
-    signup,
+    loginWithGoogle,
     logout
   };
 
