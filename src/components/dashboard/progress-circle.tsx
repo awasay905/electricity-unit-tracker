@@ -12,7 +12,7 @@ interface ProgressCircleProps {
 
 export function ProgressCircle({ percentage, title }: ProgressCircleProps) {
   const fillPercentage = Math.min(Math.max(percentage, 0), 100);
-  const chartData = [{ name: 'Goal', value: fillPercentage, fill: 'var(--color-Goal)' }];
+  const chartData = [{ name: 'Goal', value: fillPercentage, fill: "var(--color-Goal)" }];
   
   return (
     <Card className="flex flex-col h-full">
@@ -35,15 +35,16 @@ export function ProgressCircle({ percentage, title }: ProgressCircleProps) {
           <RadialBarChart
             data={chartData}
             startAngle={90}
-            innerRadius="70%"
+            endAngle={-270}
+            innerRadius="80%"
             outerRadius="100%"
-            barSize={20}
+            barSize={10}
             cy="50%"
             domain={[0, 100]}
           >
             <RadialBar
               dataKey="value"
-              background={{ fill: 'hsl(var(--muted))' }}
+              background
               cornerRadius={10}
               className="fill-[var(--color-Goal)]"
             >
