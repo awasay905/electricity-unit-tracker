@@ -27,7 +27,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setFirebaseUser(user);
       if (user) {
-        let appUser = await firestore.getUser(user.uid);
+        let appUser = null;
+          try {
+          appUser = await firestore.getUser(user.uid);  // <-- try reading
+        } catch (error) {
+          console.warn('User document read failed (probably first login):', error);
+        }
+
         if (!appUser) {
           // User signed in for the first time
           await firestore.createUser(user.uid, user.displayName || 'New User', user.email || '');
