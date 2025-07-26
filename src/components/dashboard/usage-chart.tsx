@@ -2,40 +2,46 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts';
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis, ReferenceLine } from 'recharts';
 import { useMemo } from 'react';
 import type { Reading } from '@/lib/types';
 import { BarChart3 } from 'lucide-react';
 
 interface UsageChartProps {
   readings: Reading[];
+  billingStartUnits: number;
 }
 
-export function UsageChart({ readings }: UsageChartProps) {
+export function UsageChart({ readings, billingStartUnits }: UsageChartProps) {
   const chartData = useMemo(() => {
     return [...readings]
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
       .map(reading => ({
         date: new Date(reading.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        usage: reading.value,
+        'Usage This Cycle': reading.value - billingStartUnits,
+        'Total Reading': reading.value,
       }));
-  }, [readings]);
+  }, [readings, billingStartUnits]);
 
   return (
     <Card className="h-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 font-headline">
             <BarChart3 className="h-6 w-6"/>
-            Usage Over Time
+            Usage This Cycle
         </CardTitle>
-        <CardDescription>Total meter reading progression.</CardDescription>
+        <CardDescription>Your electricity consumption since the last billing date.</CardDescription>
       </CardHeader>
       <CardContent>
         <ChartContainer config={{
-          usage: {
+          'Usage This Cycle': {
             label: 'Usage (kWh)',
             color: 'hsl(var(--primary))',
           },
+          'Total Reading': {
+            label: 'Total (kWh)',
+            color: 'hsl(var(--secondary))',
+          }
         }} className="h-[250px] w-full">
           <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
             <CartesianGrid vertical={false} strokeDasharray="3 3" />
@@ -44,20 +50,27 @@ export function UsageChart({ readings }: UsageChartProps) {
               tickLine={false}
               axisLine={false}
               tickMargin={8}
-              domain={['dataMin - 100', 'dataMax + 100']}
+              domain={['dataMin', 'dataMax + 50']}
               tickFormatter={(value) => `${value}`}
               />
-            <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+            <ChartTooltip cursor={false} content={<ChartTooltipContent 
+                formatter={(value, name) => (
+                    <div className="flex flex-col">
+                        <span className="font-bold">{`${name}: ${Number(value).toFixed(2)} kWh`}</span>
+                    </div>
+                )}
+            />} />
             <defs>
               <linearGradient id="fillUsage" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="var(--color-usage)" stopOpacity={0.8} />
-                <stop offset="95%" stopColor="var(--color-usage)" stopOpacity={0.1} />
+                <stop offset="5%" stopColor="var(--color-Usage-This-Cycle)" stopOpacity={0.8} />
+                <stop offset="95%" stopColor="var(--color-Usage-This-Cycle)" stopOpacity={0.1} />
               </linearGradient>
             </defs>
+            <ReferenceLine y={0} stroke="hsl(var(--border))" strokeDasharray="3 3" />
             <Area
               type="monotone"
-              dataKey="usage"
-              stroke="var(--color-usage)"
+              dataKey="Usage This Cycle"
+              stroke="var(--color-Usage-This-Cycle)"
               fillOpacity={1}
               fill="url(#fillUsage)"
               strokeWidth={2}

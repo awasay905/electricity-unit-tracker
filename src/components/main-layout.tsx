@@ -1,97 +1,133 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DashboardView } from '@/components/dashboard/dashboard-view';
 import { SettingsView } from '@/components/settings/settings-view';
-import type { House, Reading, User } from '@/lib/types';
+import type { House, Reading, User, JoinRequest } from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from './ui/button';
 import { Settings } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from './ui/sheet';
 import { ScrollArea } from './ui/scroll-area';
-
-// --- MOCK DATA ---
-const MOCK_USER_ID = 'user_1';
-const MOCK_OWNER_ID = 'user_1';
-const MOCK_HOUSE_ID = 'house_1';
-
-const MOCK_USERS: User[] = [
-  { uid: 'user_1', name: 'Alex Johnson', email: 'alex@example.com', houseId: MOCK_HOUSE_ID },
-  { uid: 'user_2', name: 'Maria Garcia', email: 'maria@example.com', houseId: MOCK_HOUSE_ID },
-];
-
-const MOCK_INITIAL_READINGS: Reading[] = [
-  { id: 'read_1', value: 15000, date: new Date(new Date().setDate(new Date().getDate() - 30)).toISOString(), isBillingCycleStart: true },
-  { id: 'read_2', value: 15050, date: new Date(new Date().setDate(new Date().getDate() - 20)).toISOString(), isBillingCycleStart: false },
-  { id: 'read_3', value: 15110, date: new Date(new Date().setDate(new Date().getDate() - 10)).toISOString(), isBillingCycleStart: false },
-  { id: 'read_4', value: 15180, date: new Date(new Date().setDate(new Date().getDate() - 2)).toISOString(), isBillingCycleStart: false },
-];
-
-const MOCK_HOUSE: House = {
-  id: MOCK_HOUSE_ID,
-  name: 'The Power House',
-  ownerId: MOCK_OWNER_ID,
-  joinCode: 'AbCdEf12',
-  monthlyGoal: 300,
-  billingCycleStart: {
-    date: MOCK_INITIAL_READINGS[0].date,
-    units: MOCK_INITIAL_READINGS[0].value,
-  },
-};
-
-const MOCK_JOIN_REQUESTS = [
-  { requestId: 'req_1', houseId: MOCK_HOUSE_ID, requesterName: 'Charlie Brown', status: 'pending' as const },
-  { requestId: 'req_2', houseId: MOCK_HOUSE_ID, requesterName: 'Dana Scully', status: 'pending' as const },
-];
-// --- END MOCK DATA ---
+import { useAuth } from '@/hooks/use-auth';
+import * as firestore from '@/lib/firebase/firestore';
+import { Onboarding } from './onboarding/onboarding';
 
 export function MainLayout() {
-  const [user] = useState<User>(MOCK_USERS[0]);
-  const [house, setHouse] = useState<House>(MOCK_HOUSE);
-  const [readings, setReadings] = useState<Reading[]>(MOCK_INITIAL_READINGS);
-  const [members, setMembers] = useState<User[]>(MOCK_USERS);
-  const [joinRequests, setJoinRequests] = useState(MOCK_JOIN_REQUESTS);
+  const { user, loading } = useAuth();
+  const [house, setHouse] = useState<House | null>(null);
+  const [readings, setReadings] = useState<Reading[]>([]);
+  const [members, setMembers] = useState<User[]>([]);
+  const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
+  const [appLoading, setAppLoading] = useState(true);
 
-  const handleAddReading = (newReading: Reading) => {
-    setReadings((prev) => [...prev, newReading]);
+  useEffect(() => {
+    if (loading || !user) return;
+
+    const fetchData = async () => {
+        if (user.houseId) {
+            const houseData = await firestore.getHouse(user.houseId);
+            setHouse(houseData);
+            if (houseData) {
+              const readingsData = await firestore.getReadings(houseData.id);
+              setReadings(readingsData);
+              const membersData = await firestore.getHouseMembers(houseData.id);
+              setMembers(membersData);
+              if (user.uid === houseData.ownerId) {
+                const requests = await firestore.getJoinRequests(houseData.id);
+                setJoinRequests(requests);
+              }
+            }
+        }
+        setAppLoading(false);
+    };
+
+    fetchData();
+  }, [user, loading]);
+
+  const handleAddReading = async (newReading: Omit<Reading, 'id'>) => {
+    if (!house) return;
+    const addedReading = await firestore.addReading(house.id, newReading);
+    if (addedReading) {
+      setReadings((prev) => [...prev, addedReading]);
+    }
   };
 
-  const handleUpdateHouse = (updates: Partial<House>) => {
-    setHouse((prev) => ({ ...prev, ...updates }));
+  const handleUpdateHouse = async (updates: Partial<House>) => {
+    if (!house) return;
+    await firestore.updateHouse(house.id, updates);
+    setHouse((prev) => prev ? { ...prev, ...updates } : null);
+    
     if (updates.billingCycleStart) {
-      const newBillingReading: Reading = {
-        id: `reading_billing_${Date.now()}`,
-        value: updates.billingCycleStart.units,
-        date: updates.billingCycleStart.date,
-        isBillingCycleStart: true,
-      };
-      setReadings((prev) => [...prev, newBillingReading]);
+        const newBillingReading = {
+            value: updates.billingCycleStart.units,
+            date: updates.billingCycleStart.date,
+            isBillingCycleStart: true,
+        };
+        const addedReading = await firestore.addReading(house.id, newBillingReading);
+        if (addedReading) {
+            setReadings((prev) => [...prev, addedReading]);
+        }
     }
   };
 
-  const handleUpdateRequestStatus = (requestId: string, status: 'approved' | 'rejected') => {
+  const handleUpdateRequestStatus = async (requestId: string, status: 'approved' | 'rejected') => {
+    const request = joinRequests.find(r => r.requestId === requestId);
+    if (!request) return;
+
+    await firestore.updateJoinRequest(requestId, status);
+
+    if (status === 'approved' && request.requesterId) {
+        await firestore.addUserToHouse(request.requesterId, request.houseId);
+        const newMember = await firestore.getUser(request.requesterId);
+        if (newMember) setMembers(prev => [...prev, newMember]);
+    }
+
     setJoinRequests((prev) => prev.filter((req) => req.requestId !== requestId));
-    // In a real app, if approved, a new member would be added.
-    console.log(`Request ${requestId} ${status}`);
   };
 
-  const handleRemoveMember = (uid: string) => {
-    if (uid === house.ownerId) {
-      console.error('Cannot remove the owner.');
-      return;
-    }
+  const handleRemoveMember = async (uid: string) => {
+    if (!house || uid === house.ownerId) return;
+    await firestore.removeUserFromHouse(uid);
     setMembers((prev) => prev.filter((member) => member.uid !== uid));
   };
+  
+  const handleUpdateUserName = async (name: string) => {
+    if (!user) return;
+    await firestore.updateUser(user.uid, { name });
+    // This should trigger a re-fetch or context update in a more robust app
+    window.location.reload();
+  }
 
-  if (!user || !house) {
-    // In a real app, this would be a loading state or a prompt to create/join a house
+  const handleOnboardingComplete = (houseData: House) => {
+      setHouse(houseData);
+      // In a real app, user object should be updated too
+      if (user) user.houseId = houseData.id;
+  }
+
+  if (appLoading || loading) {
     return (
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md mx-auto mt-10">
         <CardContent className="p-6 text-center">
-          <p>Loading user data...</p>
+          <p>Loading your VoltVision dashboard...</p>
         </CardContent>
       </Card>
     );
+  }
+  
+  if (!user) {
+    // This case should ideally be handled by routing, but as a fallback:
+     return (
+      <Card className="w-full max-w-md mx-auto mt-10">
+        <CardContent className="p-6 text-center">
+          <p>Please log in to continue.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!house) {
+    return <Onboarding user={user} onComplete={handleOnboardingComplete} />;
   }
 
   return (
@@ -126,7 +162,7 @@ export function MainLayout() {
                 onUpdateRequestStatus={handleUpdateRequestStatus}
                 onRemoveMember={handleRemoveMember}
                 onUpdateHouseName={(name) => handleUpdateHouse({ name })}
-                onUpdateUserName={(name) => console.log('Update user name:', name)}
+                onUpdateUserName={handleUpdateUserName}
               />
              </div>
           </ScrollArea>

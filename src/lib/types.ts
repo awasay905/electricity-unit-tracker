@@ -21,12 +21,13 @@ export interface Reading {
   id: string;
   value: number;
   date: string; // ISO string
-  isBillingCycleStart: boolean;
+  isBillingCycleStart?: boolean;
 }
 
 export interface JoinRequest {
     requestId: string;
     houseId: string;
+    requesterId?: string; // UID of the user requesting to join
     requesterName: string;
     status: 'pending' | 'approved' | 'rejected';
 }

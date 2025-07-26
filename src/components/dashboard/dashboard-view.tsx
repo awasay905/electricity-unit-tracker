@@ -3,34 +3,37 @@
 
 import type { House, Reading, User } from '@/lib/types';
 import { StatCard } from './stat-card';
-import { GoalProgress } from './goal-progress';
 import { PacingGuide } from './pacing-guide';
 import { ReadingForm } from './reading-form';
 import { GoalForm } from './goal-form';
 import { UsageChart } from './usage-chart';
 import { useMemo } from 'react';
-import { Home, Zap, Calendar, Target, Users } from 'lucide-react';
+import { Zap, Target, Calendar, Users } from 'lucide-react';
+import { GoalProgress } from './goal-progress';
 
 interface DashboardViewProps {
   user: User;
   house: House;
   readings: Reading[];
   members: User[];
-  onAddReading: (reading: Reading) => void;
+  onAddReading: (reading: Omit<Reading, 'id'>) => void;
   onUpdateHouse: (house: Partial<House>) => void;
 }
 
 export function DashboardView({ user, house, readings, members, onAddReading, onUpdateHouse }: DashboardViewProps) {
   const sortedReadings = useMemo(() => [...readings].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()), [readings]);
-  const latestReading = sortedReadings[0] || { value: 0, date: new Date().toISOString() };
+  
+  const latestReading = useMemo(() => sortedReadings[0] || { value: 0, date: new Date().toISOString() }, [sortedReadings]);
   
   const billingCycleStartReading = useMemo(() => {
-    return [...sortedReadings].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-        .find(r => r.isBillingCycleStart) || { value: 0, date: new Date().toISOString() };
-  }, [sortedReadings]);
+    return [...sortedReadings]
+        .filter(r => new Date(r.date) >= new Date(house.billingCycleStart.date))
+        .sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0] || { value: house.billingCycleStart.units, date: house.billingCycleStart.date};
+  }, [sortedReadings, house.billingCycleStart]);
+
 
   const unitsConsumed = useMemo(() => {
-      if (latestReading && billingCycleStartReading && latestReading.value > billingCycleStartReading.value) {
+      if (latestReading && latestReading.value > billingCycleStartReading.value) {
           return latestReading.value - billingCycleStartReading.value;
       }
       return 0;
@@ -66,7 +69,7 @@ export function DashboardView({ user, house, readings, members, onAddReading, on
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:grid-flow-row-dense">
         <div className="lg:col-span-2 lg:col-start-1">
-            <UsageChart readings={readings} />
+            <UsageChart readings={readings} billingStartUnits={house.billingCycleStart.units} />
         </div>
         <div className="space-y-4 lg:col-span-1 lg:col-start-3">
             <ReadingForm onAddReading={onAddReading} lastReadingValue={latestReading.value} />

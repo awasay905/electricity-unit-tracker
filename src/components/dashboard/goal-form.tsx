@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import type { House } from '@/lib/types';
 import { Target } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 const formSchema = z.object({
   monthlyGoal: z.preprocess((val) => Number(val), z.number().min(1, 'Goal must be positive.')),
@@ -24,12 +25,13 @@ interface GoalFormProps {
 }
 
 export function GoalForm({ house, onUpdateHouse }: GoalFormProps) {
+  const { toast } = useToast();
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       monthlyGoal: house.monthlyGoal,
-      billingDate: new Date().toISOString().split('T')[0],
-      billingUnits: 0,
+      billingDate: new Date(house.billingCycleStart.date).toISOString().split('T')[0],
+      billingUnits: house.billingCycleStart.units,
     },
   });
 
@@ -41,8 +43,10 @@ export function GoalForm({ house, onUpdateHouse }: GoalFormProps) {
             units: data.billingUnits
         }
     });
-    // In a real app, you'd probably show a toast notification here.
-    console.log('House goal updated:', data);
+    toast({
+        title: "Settings Updated",
+        description: "Your house goal and billing cycle have been saved.",
+    });
   };
 
   return (

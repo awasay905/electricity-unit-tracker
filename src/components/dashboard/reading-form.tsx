@@ -9,13 +9,16 @@ import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import type { Reading } from '@/lib/types';
 import { Zap } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface ReadingFormProps {
   lastReadingValue: number;
-  onAddReading: (reading: Reading) => void;
+  onAddReading: (reading: Omit<Reading, 'id' | 'isBillingCycleStart'>) => void;
 }
 
 export function ReadingForm({ lastReadingValue, onAddReading }: ReadingFormProps) {
+  const { toast } = useToast();
+  
   const formSchema = z.object({
     value: z.preprocess(
       (val) => Number(val),
@@ -37,13 +40,15 @@ export function ReadingForm({ lastReadingValue, onAddReading }: ReadingFormProps
   });
 
   const onSubmit: SubmitHandler<FormValues> = (data) => {
-    const newReading: Reading = {
-      id: `reading_${Date.now()}`,
+    const newReading = {
       value: data.value,
       date: new Date(data.date).toISOString(),
-      isBillingCycleStart: false,
     };
     onAddReading(newReading);
+    toast({
+        title: "Reading Submitted!",
+        description: `Successfully added reading of ${data.value} kWh.`,
+    })
     form.reset({ value: undefined, date: new Date().toISOString().split('T')[0] });
   };
 
@@ -66,7 +71,7 @@ export function ReadingForm({ lastReadingValue, onAddReading }: ReadingFormProps
                 <FormItem>
                   <FormLabel>Meter Reading (kWh)</FormLabel>
                   <FormControl>
-                    <Input type="number" placeholder={`> ${lastReadingValue}`} {...field} />
+                    <Input type="number" step="any" placeholder={`> ${lastReadingValue}`} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

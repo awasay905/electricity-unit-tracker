@@ -6,9 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { House, User as UserIcon, Bell, Copy, Check, X, LogOut, UserPlus } from 'lucide-react';
+import { House, User as UserIcon, Bell, Copy, Check, X, Trash2, UserPlus } from 'lucide-react';
 import type { House as HouseType, User, JoinRequest } from '@/lib/types';
 import { useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 interface SettingsViewProps {
   user: User;
@@ -35,19 +36,23 @@ export function SettingsView({
   const [houseName, setHouseName] = useState(house.name);
   const [userName, setUserName] = useState(user.name);
   const [copied, setCopied] = useState(false);
+  const { toast } = useToast();
 
   const handleCopyCode = () => {
     navigator.clipboard.writeText(house.joinCode);
     setCopied(true);
+    toast({ title: "Copied!", description: "Join code copied to clipboard."});
     setTimeout(() => setCopied(false), 2000);
   };
   
   const handleHouseNameSave = () => {
       onUpdateHouseName(houseName);
+      toast({ title: "House name updated."});
   }
 
   const handleUserNameSave = () => {
       onUpdateUserName(userName);
+      toast({ title: "Your name has been updated."});
   }
 
   return (
@@ -63,7 +68,7 @@ export function SettingsView({
             <Label htmlFor="userName">Name</Label>
             <div className="flex gap-2">
                 <Input id="userName" value={userName} onChange={(e) => setUserName(e.target.value)} />
-                <Button onClick={handleUserNameSave}>Save</Button>
+                <Button onClick={handleUserNameSave} disabled={userName === user.name}>Save</Button>
             </div>
           </div>
           <div className="space-y-2">
@@ -84,7 +89,7 @@ export function SettingsView({
             <Label htmlFor="houseName">House Name</Label>
             <div className="flex gap-2">
                 <Input id="houseName" value={houseName} onChange={(e) => setHouseName(e.target.value)} disabled={!isOwner} />
-                {isOwner && <Button onClick={handleHouseNameSave}>Save</Button>}
+                {isOwner && <Button onClick={handleHouseNameSave} disabled={houseName === house.name}>Save</Button>}
             </div>
           </div>
           {isOwner && (
@@ -106,7 +111,7 @@ export function SettingsView({
                 <div key={member.uid} className="flex items-center justify-between p-2 rounded-md bg-muted/50">
                    <div className="flex items-center gap-3">
                     <Avatar>
-                        <AvatarImage src={`https://placehold.co/40x40.png?text=${member.name.charAt(0)}`} />
+                        <AvatarImage data-ai-hint="person" src={`https://placehold.co/40x40.png?text=${member.name.charAt(0)}`} />
                         <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
                     </Avatar>
                     <div>
@@ -115,7 +120,7 @@ export function SettingsView({
                     </div>
                    </div>
                   {isOwner && user.uid !== member.uid && (
-                    <Button variant="destructive" size="icon" onClick={() => onRemoveMember(member.uid)}><LogOut className="h-4 w-4" /></Button>
+                    <Button variant="destructive" size="icon" onClick={() => onRemoveMember(member.uid)}><Trash2 className="h-4 w-4" /></Button>
                   )}
                 </div>
               ))}
