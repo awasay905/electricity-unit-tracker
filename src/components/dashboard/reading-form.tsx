@@ -34,7 +34,7 @@ export function ReadingForm({ lastReadingValue, onAddReading }: ReadingFormProps
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      value: undefined,
+      value: '' as any, // Changed from undefined to empty string
       date: new Date().toISOString().split('T')[0],
     },
   });
@@ -49,7 +49,7 @@ export function ReadingForm({ lastReadingValue, onAddReading }: ReadingFormProps
         title: "Reading Submitted!",
         description: `Successfully added reading of ${data.value} kWh.`,
     })
-    form.reset({ value: undefined, date: new Date().toISOString().split('T')[0] });
+    form.reset({ value: '' as any, date: new Date().toISOString().split('T')[0] }); // Changed from undefined to empty string
   };
 
   return (
