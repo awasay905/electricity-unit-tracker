@@ -107,10 +107,10 @@ export function MainLayout() {
 
       <Sheet>
         <SheetTrigger asChild>
-          <Button variant="default" className="fixed bottom-6 right-6 h-16 w-16 rounded-full shadow-lg">
-            <Settings className="h-8 w-8" />
-            <span className="sr-only">Open Settings</span>
-          </Button>
+           <Button variant="outline" className="w-full mt-6 py-6 text-lg">
+                <Settings className="mr-2 h-5 w-5" />
+                Manage House Settings
+            </Button>
         </SheetTrigger>
         <SheetContent side="bottom" className="h-[90vh] flex flex-col">
            <SheetHeader>
