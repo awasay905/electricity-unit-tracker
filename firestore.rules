@@ -14,13 +14,20 @@ service cloud.firestore {
 
     // Users can only read/write their own user document
     match /users/{userId} {
-      allow read, update: if request.auth.uid == userId;
-      // A user can only create a document for themselves.
+      // Allow users to update their own document
+      allow update: if request.auth.uid == userId;
+      
+      // A user can only create a document for themselves
       allow create: if request.auth.uid == userId;
       
-      // Allow authenticated users to read other user profiles if they share the same houseId.
-      // This rule enables the getHouseMembers function to work.
-      // The 'read' rule covers both single document reads and queries.
+      // Allow house owners to update houseId when approving join requests
+      allow update: if request.auth != null 
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['houseId'])
+        && exists(/databases/$(database)/documents/houses/$(request.resource.data.houseId))
+        && get(/databases/$(database)/documents/houses/$(request.resource.data.houseId)).data.ownerId == request.auth.uid;
+      
+      // Allow authenticated users to read other user profiles if they share the same houseId
+      // This rule enables the getHouseMembers function to work
       allow read: if request.auth != null && resource.data.houseId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.houseId;
     }
 
@@ -59,8 +66,8 @@ service cloud.firestore {
         // Requesters can read their own requests
         allow read: if request.auth.uid == resource.data.requesterId;
         
-        // House owners can read and delete requests for their house
-        allow read, delete: if resource.data.houseId != null 
+        // House owners can read, update and delete requests for their house
+        allow read, update, delete: if resource.data.houseId != null 
             && exists(/databases/$(database)/documents/houses/$(resource.data.houseId))
             && get(/databases/$(database)/documents/houses/$(resource.data.houseId)).data.ownerId == request.auth.uid;
     }
