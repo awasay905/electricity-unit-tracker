@@ -4,7 +4,7 @@
 import { useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { TrendingUp, Gauge } from 'lucide-react';
+import { Gauge } from 'lucide-react';
 
 interface PacingGuideProps {
     monthlyGoal: number;
@@ -23,8 +23,8 @@ interface PaceInfo {
 const paceScale: Record<PaceStatus, PaceInfo> = {
     'Very High': { status: 'Very High', colorClass: 'bg-red-500', description: 'Consumption is much higher than target pace.' },
     'High': { status: 'High', colorClass: 'bg-orange-500', description: 'Consumption is higher than target pace.' },
-    'On Track': { status: 'On Track', colorClass: 'bg-green-500', description: 'Consumption is on track to meet the goal.' },
-    'Low': { status: 'Low', colorClass: 'bg-blue-500', description: 'Consumption is lower than target pace. Great job!' },
+    'On Track': { status: 'On Track', colorClass: 'bg-accent', description: 'Consumption is on track to meet the goal.' },
+    'Low': { status: 'Low', colorClass: 'bg-green-500', description: 'Consumption is lower than target pace. Great job!' },
     'Very Low': { status: 'Very Low', colorClass: 'bg-sky-400', description: 'Consumption is much lower than target pace. Excellent!' },
 };
 
@@ -88,7 +88,7 @@ export function PacingGuide({ monthlyGoal, currentUsage, billingStartDate }: Pac
                     </div>
                 </div>
                  <div className="text-center mt-4">
-                    <p className="font-bold text-lg" style={{color: paceInfo.colorClass.startsWith('bg-') ? `var(--${paceInfo.colorClass.substring(3, paceInfo.colorClass.lastIndexOf('-'))}-500)`: 'inherit'}}>{paceInfo.status}</p>
+                    <p className="font-bold text-lg" style={{color: paceInfo.colorClass.startsWith('bg-') ? paceInfo.colorClass === 'bg-accent' ? 'hsl(var(--accent))' : `var(--${paceInfo.colorClass.substring(3, paceInfo.colorClass.lastIndexOf('-'))}-500)`: 'inherit'}}>{paceInfo.status}</p>
                     <p className="text-sm text-muted-foreground">{paceInfo.description}</p>
                 </div>
             </CardContent>
