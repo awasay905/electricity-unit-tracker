@@ -12,10 +12,7 @@ interface ProgressCircleProps {
 
 export function ProgressCircle({ percentage, title }: ProgressCircleProps) {
   const fillPercentage = Math.min(Math.max(percentage, 0), 100);
-  const chartData = [
-    { name: 'background', value: 100, fill: 'hsl(var(--muted))' },
-    { name: 'value', value: fillPercentage, fill: 'hsl(var(--primary))' },
-  ];
+  const chartData = [{ name: 'value', value: fillPercentage, fill: 'hsl(var(--primary))' }];
   
   return (
     <Card className="flex flex-col h-full">
@@ -39,7 +36,11 @@ export function ProgressCircle({ percentage, title }: ProgressCircleProps) {
             barSize={10}
             cy="50%"
           >
-            <RadialBar dataKey="value" cornerRadius={10} stackId="a" />
+            <RadialBar 
+              dataKey="value" 
+              cornerRadius={10} 
+              background={{ fill: 'hsl(var(--muted))' }}
+            />
             <ChartTooltip
                 cursor={false}
                 content={<ChartTooltipContent hideLabel nameKey="name" formatter={(value, name) => (name === 'value' ? `${Number(value).toFixed(0)}%` : null)} />}
