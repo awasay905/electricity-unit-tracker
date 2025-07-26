@@ -4,7 +4,7 @@
 import type { House, Reading, User } from '@/lib/types';
 import { StatCard } from './stat-card';
 import { GoalProgress } from './goal-progress';
-import { SafetyGauge } from './safety-gauge';
+import { PacingGuide } from './pacing-guide';
 import { ReadingForm } from './reading-form';
 import { GoalForm } from './goal-form';
 import { UsageChart } from './usage-chart';
@@ -60,7 +60,7 @@ export function DashboardView({ user, house, readings, members, onAddReading, on
           <GoalProgress title="Goal Reached" percentage={goalReachedPercent} />
         </div>
         <div className="lg:col-span-2">
-           <SafetyGauge monthlyGoal={house.monthlyGoal} currentUsage={unitsConsumed} billingStartDate={new Date(billingCycleStartReading.date)} />
+           <PacingGuide monthlyGoal={house.monthlyGoal} currentUsage={unitsConsumed} billingStartDate={new Date(billingCycleStartReading.date)} />
         </div>
       </div>
 
