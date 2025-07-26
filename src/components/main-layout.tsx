@@ -141,7 +141,13 @@ export function MainLayout() {
         onUpdateHouse={handleUpdateHouse}
       />
 
-      <Sheet>
+      <Sheet onOpenChange={async (open) => {
+          if (open && house && user.uid === house.ownerId) {
+            // Refresh join requests when settings is opened
+            const requests = await firestore.getJoinRequests(house.id);
+            setJoinRequests(requests);
+          }
+        }}>
         <SheetTrigger asChild>
            <Button variant="outline" className="w-full mt-6 py-6 text-lg">
                 <Settings className="mr-2 h-5 w-5" />
