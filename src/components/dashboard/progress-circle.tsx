@@ -11,8 +11,12 @@ interface ProgressCircleProps {
 }
 
 export function ProgressCircle({ percentage, title }: ProgressCircleProps) {
-  const chartData = [{ name: 'Goal', value: percentage, fill: 'hsl(var(--primary))' }];
   const fillPercentage = Math.min(Math.max(percentage, 0), 100);
+  const chartData = [{ name: 'Goal', value: fillPercentage, fill: 'hsl(var(--primary))' }];
+  
+  // Calculate the end angle based on the percentage
+  const endAngle = 90 + (fillPercentage / 100) * 360;
+
 
   return (
     <Card className="flex flex-col h-full">
