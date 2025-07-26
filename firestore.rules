@@ -1,0 +1,69 @@
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if a user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper function to get a user's document
+    function getUser(uid) {
+      return get(/databases/$(database)/documents/users/$(uid)).data;
+    }
+    
+    // Helper function to check if a user belongs to a specific house
+    function isHouseMember(houseId) {
+        return isAuthenticated() && getUser(request.auth.uid).houseId == houseId;
+    }
+
+    // --- User Rules ---
+    // Users can read and update their own document, but not create or delete it through the app.
+    // Creation is handled by the backend function when a user first signs up.
+    match /users/{userId} {
+      allow read, update: if isAuthenticated() && request.auth.uid == userId;
+      // Disallow create/delete from client to prevent users from creating arbitrary accounts
+      // or deleting their own record in a way that might orphan other data.
+      allow create, delete: if false;
+    }
+
+    // --- House Rules ---
+    match /houses/{houseId} {
+      // Allow creation for any authenticated user (they will be the owner)
+      allow create: if isAuthenticated();
+
+      // Only house members can read house data
+      allow read: if isHouseMember(houseId);
+
+      // Only the house owner can update house details or delete the house
+      allow update, delete: if isHouseMember(houseId) && resource.data.ownerId == request.auth.uid;
+
+        // --- Readings Subcollection Rules ---
+        match /readings/{readingId} {
+            // Only house members can read or create new readings
+            allow read, create: if isHouseMember(houseId);
+            // Readings are immutable; they cannot be updated or deleted from the client.
+            allow update, delete: if false;
+        }
+    }
+    
+    // --- Join Request Rules ---
+    match /joinRequests/{requestId} {
+        // Any authenticated user can create a join request.
+        allow create: if isAuthenticated();
+
+        // Only the owner of the requested house can read the join request.
+        // `request.resource.data` refers to the data being written.
+        allow read: if isHouseMember(get(/databases/$(database)/documents/houses/$(request.resource.data.houseId)).data.id);
+
+        // Requests are deleted upon approval/rejection, not updated or read in a list.
+        // Deletion is handled by a backend function or a more complex rule structure if needed.
+        // For client-side, we can allow deletion by the house owner.
+        allow delete: if isHouseMember(get(/databases/$(database)/documents/joinRequests/$(requestId)).data.houseId) && get(/databases/$(database)/documents/houses/$(get(/databases/$(database)/documents/joinRequests/$(requestId)).data.houseId)).data.ownerId == request.auth.uid;
+        
+        allow update: if false;
+    }
+  }
+}
