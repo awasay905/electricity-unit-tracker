@@ -8,7 +8,7 @@ import { ReadingForm } from './reading-form';
 import { GoalForm } from './goal-form';
 import { UsageChart } from './usage-chart';
 import { useMemo } from 'react';
-import { Zap, Target, Calendar, Users } from 'lucide-react';
+import { Zap, Target, Calendar } from 'lucide-react';
 import { GoalProgress } from './goal-progress';
 
 interface DashboardViewProps {
@@ -56,7 +56,7 @@ export function DashboardView({ user, house, readings, members, onAddReading, on
         <StatCard icon={Target} title="Units Left" value={`${unitsLeft.toFixed(2)} kWh`} />
         <StatCard icon={Calendar} title="Last Reading" 
           value={`${Math.floor((new Date().getTime() - new Date(latestReading.date).getTime()) / (1000 * 60 * 60 * 24))} days ago.`} />
-        <StatCard icon={Users} title="Members" value={members.length.toString()} />
+        <StatCard icon={Target} title="Goal Set" value={`${house.monthlyGoal} kWh`} />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm, type SubmitHandler } from 'react-hook-form';
@@ -10,6 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import type { House } from '@/lib/types';
 import { Target } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui/alert-dialog';
 
 const formSchema = z.object({
   monthlyGoal: z.preprocess((val) => Number(val), z.number().min(1, 'Goal must be positive.')),
@@ -60,7 +62,7 @@ export function GoalForm({ house, onUpdateHouse }: GoalFormProps) {
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
             <FormField
               control={form.control}
               name="monthlyGoal"
@@ -100,7 +102,25 @@ export function GoalForm({ house, onUpdateHouse }: GoalFormProps) {
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full">Update Settings</Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button type="button" className="w-full">Update Settings</Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Updating these settings will reset your current billing cycle and recalculate your usage from the new date and unit value. This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={form.handleSubmit(onSubmit)}>
+                    Confirm & Update
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </form>
         </Form>
       </CardContent>
