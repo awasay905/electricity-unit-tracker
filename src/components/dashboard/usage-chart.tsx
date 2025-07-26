@@ -42,7 +42,7 @@ export function UsageChart({ readings, billingStartUnits }: UsageChartProps) {
   }, [readings, billingStartUnits]);
 
   return (
-    <Card className="h-full">
+    <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 font-headline">
             <BarChart3 className="h-6 w-6"/>
