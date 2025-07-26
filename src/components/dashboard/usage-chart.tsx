@@ -14,13 +14,31 @@ interface UsageChartProps {
 
 export function UsageChart({ readings, billingStartUnits }: UsageChartProps) {
   const chartData = useMemo(() => {
-    return [...readings]
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-      .map(reading => ({
-        date: new Date(reading.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        'Usage This Cycle': reading.value - billingStartUnits,
-        'Total Reading': reading.value,
-      }));
+    // Find the most recent billing cycle start reading
+    const billingReadings = readings.filter(r => r.isBillingCycleStart)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const currentBillingStart = billingReadings[0];
+
+    // If no billing start found, return empty chart
+    if (!currentBillingStart) return [];
+
+    // Get readings only from current billing cycle
+    const currentCycleReadings = readings
+      .filter(reading => new Date(reading.date) >= new Date(currentBillingStart.date))
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    // Remove duplicate dates by keeping only the latest reading for each date
+    const uniqueReadings = currentCycleReadings.reduce((acc, current) => {
+      const date = new Date(current.date).toLocaleDateString('en-US');
+      return { ...acc, [date]: current };
+    }, {} as Record<string, Reading>);
+
+    // Convert to chart data format
+    return Object.values(uniqueReadings).map(reading => ({
+      date: new Date(reading.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      'Usage This Cycle': reading.value - currentBillingStart.value,
+      'Total Reading': reading.value,
+    }));
   }, [readings, billingStartUnits]);
 
   return (
