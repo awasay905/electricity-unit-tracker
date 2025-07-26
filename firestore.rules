@@ -5,14 +5,23 @@ service cloud.firestore {
   match /databases/{database}/documents {
     // Helper function to check if a user belongs to a specific house
     function isHouseMember(houseId) {
+    
+
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.houseId == houseId;
     }
+    
+
 
     // Users can only read/write their own user document
     match /users/{userId} {
       allow read, update: if request.auth.uid == userId;
       // A user can only create a document for themselves.
       allow create: if request.auth.uid == userId;
+      
+      // Allow authenticated users to read other user profiles if they share the same houseId.
+      // This rule enables the getHouseMembers function to work.
+      // The 'read' rule covers both single document reads and queries.
+      allow read: if request.auth != null && resource.data.houseId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.houseId;
     }
 
     // Rules for houses
