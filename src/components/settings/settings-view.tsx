@@ -72,7 +72,7 @@ export function SettingsView({
         toast({
             variant: 'destructive',
             title: 'Action Not Allowed',
-            description: 'Billing cycle start readings cannot be edited here. Update it via the "Set Goals & Billing" form.'
+            description: 'Billing cycle start readings cannot be edited here. Please use the "Set Goals & Billing" form on the dashboard to update this value.'
         });
         return;
     }
@@ -80,20 +80,20 @@ export function SettingsView({
     setIsEditDialogOpen(true);
   };
   
-  const handleDeleteClick = (reading: Reading) => {
-    if (reading.isBillingCycleStart) {
-        toast({
-            variant: 'destructive',
-            title: 'Action Not Allowed',
-            description: 'Billing cycle start readings cannot be deleted.'
-        });
-        return;
-    }
-    onDeleteReading(reading.id);
+  const handleDeleteClick = (readingId: string) => {
+    onDeleteReading(readingId);
      toast({
         title: 'Reading Deleted',
         description: 'The reading has been successfully deleted.',
       });
+  }
+
+  const showBillingCycleToast = () => {
+     toast({
+        variant: 'destructive',
+        title: 'Action Not Allowed',
+        description: 'Billing cycle start readings cannot be deleted. Please use the "Set Goals & Billing" form on the dashboard to change your billing cycle.'
+    });
   }
 
   return (
@@ -215,11 +215,11 @@ export function SettingsView({
                                     </Button>
                                     <AlertDialog>
                                         <AlertDialogTrigger asChild>
-                                          <Button variant="destructive" size="icon" disabled={!!reading.isBillingCycleStart}>
+                                          <Button variant="destructive" size="icon" disabled={!!reading.isBillingCycleStart} onClick={reading.isBillingCycleStart ? showBillingCycleToast : undefined}>
                                               <Trash2 className="h-4 w-4" />
                                           </Button>
                                         </AlertDialogTrigger>
-                                        <AlertDialogContent>
+                                        {!reading.isBillingCycleStart && <AlertDialogContent>
                                             <AlertDialogHeader>
                                                 <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                                                 <AlertDialogDescription>
@@ -228,9 +228,9 @@ export function SettingsView({
                                             </AlertDialogHeader>
                                             <AlertDialogFooter>
                                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                <AlertDialogAction onClick={() => handleDeleteClick(reading)}>Delete</AlertDialogAction>
+                                                <AlertDialogAction onClick={() => handleDeleteClick(reading.id)}>Delete</AlertDialogAction>
                                             </AlertDialogFooter>
-                                        </AlertDialogContent>
+                                        </AlertDialogContent>}
                                     </AlertDialog>
                                 </div>
                             </div>
