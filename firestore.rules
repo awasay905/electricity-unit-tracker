@@ -2,42 +2,43 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Helper function to check if the requesting user is a member of a specific house.
-    // It reads the user's own document to find their houseId.
+  
     function isHouseMember(houseId) {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.houseId == houseId;
     }
-
-    // Users can only read or update their own document. Anyone can create a user doc (on signup).
-    match /users/{userId} {
-      allow read, update: if request.auth.uid == userId;
-      allow create: if request.auth.uid != null;
+    
+    function isHouseOwner(houseId) {
+        return get(/databases/$(database)/documents/houses/$(houseId)).data.ownerId == request.auth.uid;
     }
 
-    // Rules for houses and their subcollections (readings).
+    match /users/{userId} {
+      // A user can only create their own user document.
+      allow create: if request.auth.uid == userId;
+      // A user can only read or update their own document.
+      allow read, update: if request.auth.uid == userId;
+    }
+
     match /houses/{houseId} {
-      // Only members of the house can read the house document.
+      // Any member of a house can read its data.
       allow read: if isHouseMember(houseId);
-
-      // Only the owner can update the house document.
-      allow update: if isHouseMember(houseId) && request.auth.uid == get(/databases/$(database)/documents/houses/$(houseId)).data.ownerId;
+      // A user creating a house must be its owner.
+      allow create: if request.auth.uid == request.resource.data.ownerId;
+      // Only the owner can update house details (name, goal, etc.).
+      allow update: if isHouseOwner(houseId);
       
-      // Anyone authenticated can create a house. The associated user document update is handled by the user rules.
-      allow create: if request.auth.uid != null;
-
-      // Rules for the 'readings' subcollection within a house.
       match /readings/{readingId} {
-        // Any member of the house can create or read readings.
+        // Any house member can create and read readings for their house.
         allow read, create: if isHouseMember(houseId);
       }
     }
-
-    // Join requests can be created by any authenticated user.
-    // Only the owner of the requested house can read or delete them.
+    
     match /joinRequests/{requestId} {
-      allow create: if request.auth.uid != null;
-      allow read, delete: if get(/databases/$(database)/documents/houses/$(request.resource.data.houseId)).data.ownerId == request.auth.uid;
+        // An authenticated user can create a request to join a house.
+        allow create: if request.auth.uid != null;
+        // Only the owner of the house can read the requests to join it.
+        allow read: if isHouseOwner(request.resource.data.houseId);
+        // Only the owner can approve or reject requests.
+        allow delete: if isHouseOwner(get(/databases/$(database)/documents/joinRequests/$(requestId)).data.houseId);
     }
   }
 }

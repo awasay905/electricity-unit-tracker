@@ -27,7 +27,7 @@ export interface Reading {
 export interface JoinRequest {
     requestId: string;
     houseId: string;
-    requesterId?: string; // UID of the user requesting to join
+    requesterId: string; // UID of the user requesting to join
     requesterName: string;
     status: 'pending' | 'approved' | 'rejected';
 }
