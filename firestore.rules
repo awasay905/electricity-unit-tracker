@@ -26,8 +26,16 @@ service cloud.firestore {
 
     // Rules for houses
     match /houses/{houseId} {
-      // Any member of the house can read house data
-      allow read: if isHouseMember(houseId);
+      // Allow reading house data if:
+      // 1. User is a member of the house OR
+      // 2. User is authenticated and querying by join code
+      allow read: if isHouseMember(houseId) || 
+        (request.auth != null && (
+          // Allow direct document read
+          resource.data.joinCode != null ||
+          // Allow querying by join code
+          ('joinCode' in request.query.filters)
+        ));
 
       // Only the owner can update house details
       allow update: if isHouseMember(houseId) && resource.data.ownerId == request.auth.uid;
@@ -44,10 +52,17 @@ service cloud.firestore {
     
     // Rules for join requests
     match /joinRequests/{requestId} {
-        // Users can create requests for themselves
-        allow create: if request.auth.uid == request.resource.data.requesterId;
-        // The owner of the house can read/delete the request
-        allow read, delete: if isHouseMember(request.resource.data.houseId) && get(/databases/$(database)/documents/houses/$(request.resource.data.houseId)).data.ownerId == request.auth.uid;
+        // Users can create requests for themselves and the house must exist
+        allow create: if request.auth.uid == request.resource.data.requesterId 
+            && exists(/databases/$(database)/documents/houses/$(request.resource.data.houseId));
+        
+        // Requesters can read their own requests
+        allow read: if request.auth.uid == resource.data.requesterId;
+        
+        // House owners can read and delete requests for their house
+        allow read, delete: if resource.data.houseId != null 
+            && exists(/databases/$(database)/documents/houses/$(resource.data.houseId))
+            && get(/databases/$(database)/documents/houses/$(resource.data.houseId)).data.ownerId == request.auth.uid;
     }
   }
 }
