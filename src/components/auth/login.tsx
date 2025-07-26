@@ -46,7 +46,7 @@ export function Login() {
           <div className="mx-auto mb-4 flex items-center justify-center rounded-full bg-primary p-3">
             <Bolt className="h-8 w-8 text-primary-foreground" />
           </div>
-          <CardTitle className="text-2xl font-bold font-headline text-primary">Welcome to Unitrack</CardTitle>
+          <CardTitle className="text-2xl font-bold font-headline text-primary">Welcome to VoltVision</CardTitle>
           <CardDescription>Sign in with your Google account to continue.</CardDescription>
         </CardHeader>
         <CardContent>
